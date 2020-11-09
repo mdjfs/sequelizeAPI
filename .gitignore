@@ -1,0 +1,5 @@
+./database/config/*
+./database/migrations/*
+./database/seeders/*
+./keys/*
+./node_modules/*
