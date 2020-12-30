@@ -25,6 +25,7 @@ async function getKnowFaces(currentUser){
 }
 
 async function processFaces(cameraId, images, currentUser){
+    images = (Array.isArray(images)) ? images : [images];
     const cam = await Cameras.findOne({
         where:{
             id: cameraId,
@@ -60,6 +61,7 @@ async function processFaces(cameraId, images, currentUser){
 }
 
 async function registerFaces(firstName, lastName, images, currentUser){
+    images = (Array.isArray(images)) ? images : [images];
     const person = await People.create({
         firstName: firstName,
         lastName: lastName,
