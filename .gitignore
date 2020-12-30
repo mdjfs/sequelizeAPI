@@ -1,5 +1,6 @@
-./database/config/*
-./database/migrations/*
-./database/seeders/*
-./keys/*
-./node_modules/*
+database/config/*
+database/migrations/*
+database/seeders/*
+keys/*
+node_modules/*
+package-lock.json

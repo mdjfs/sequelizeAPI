@@ -5,33 +5,42 @@ const sha256 = require('tiny-sha256');
 const {User} = require('./database/models/index');
 auth.unless = require('express-unless');
 
-const privateKey = fs.readFileSync('./keys/pass');
+let privateKey;
 
-const constraints = ["id", "username"];
+function initSecurity(callback){
+    fs.readFile('./keys/pass', (err, data) => {
+        if(!err){
+            privateKey = data;
+            callback(null);
+        }else callback(err);
+    })
+}
 
 function auth(req, res, next) {
     if (!req.header("Access-Token")) {
         res.status(401).send("401 Unauthorized.")
     }
     else {
-        jwt.verify(req.header("Access-Token"), privateKey, { algorithms: ['RS256'] }, (err, target) => {
+        jwt.verify(req.header("Access-Token"), privateKey, { algorithms: ['RS256'] }, (err, user) => {
             if (err) {
                 res.status(401).send(err);
             }
-            else {
-                User.findOne(target)
-                    .then(user => {
+            else if(user.username) {
+                User.findOne({
+                    where: {
+                        username: user.username
+                    }
+                }).then(user => {
                         if (user) {
-                            req.auth = {
-                                user: user,
-                                target: target
-                            };
+                            req.currentUser = user.dataValues;
                             next();
                         }
                         else {
-                            res.status(500).send("Can't find the user.")
+                            res.status(500).send("Invalid user or password.")
                         }
-                    }).catch(err => res.status(500).send(err))
+                }).catch(err => res.status(500).send(err))
+            }else{
+                res.status(500).send("Can't find the user.")
             }
         });
     }
@@ -40,33 +49,25 @@ function auth(req, res, next) {
 
 
 function sign(body, callback) {
-    var target = {
-        where: {}
-    };
-    var find = false;
-    for(var constraint of constraints)
-        if(find = Object.keys(body).includes(constraint))
-            target.where[constraint] = body[constraint];
-    if(!find && body.password){
-        callback("Can't find the user or you not set the password.");
-    }
-    else{
-        User.findOne(target)
-        .then(actualUser => {
+    if(body.username && body.password){
+        User.findOne({
+            where: {
+                username: body.username
+            }
+        }).then(actualUser => {
             if(sha256(body.password) === actualUser.password){
-                jwt.sign(target, privateKey, {algorithm: 'RS256'}, (err, token) => {
+                jwt.sign(actualUser.dataValues, privateKey, {algorithm: 'RS256'}, (err, token) => {
                     (err) ? callback(err) : callback(null,token);
                 });
             }
             else{
-                callback("Invalid password.");
+                callback("Invalid user or password.");
             }
         }).catch(err => callback(err));
     }
+    else{
+        callback("Can't find the user or you not set the password.");
+    }
 }
 
-module.exports = {
-    auth: auth,
-    sign: sign,
-    constraints: constraints
-}
+module.exports = {auth, sign, initSecurity};

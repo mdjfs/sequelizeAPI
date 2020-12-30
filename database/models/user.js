@@ -3,7 +3,6 @@ const sha256 = require('tiny-sha256');
 
 module.exports = function(sequelize, {STRING}){
 
-
     const user = sequelize.define('User', {
         firstName: {
             type: STRING,
@@ -30,6 +29,13 @@ module.exports = function(sequelize, {STRING}){
             }
         }
     });
+
+    user.associate = function(models){
+        user.hasMany(models.People);
+        user.hasMany(models.Cameras);
+        user.hasMany(models.Detections);
+    }
+
     return user;
 
 }
